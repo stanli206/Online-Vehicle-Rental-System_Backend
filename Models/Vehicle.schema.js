@@ -9,7 +9,7 @@ const vehicleSchema = new mongoose.Schema(
     pricePerDay: { type: Number, required: true },
     location: { type: String, required: true },
     availability: { type: Boolean, default: true },
-    images: [{ type: String, default: "" }],
+    images: { type: String, default: "" },
     description: { type: String },
     ratings: { type: Number, default: 0 },
   },

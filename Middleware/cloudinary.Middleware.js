@@ -23,4 +23,4 @@ const vehicleImageStorage = new CloudinaryStorage({
 const uploadProfile = multer({ storage: profileStorage });
 const uploadVehicle = multer({ storage: vehicleImageStorage });
 
-export { uploadProfile ,uploadVehicle}; //, uploadVehicle
+export { uploadProfile ,uploadVehicle}; 

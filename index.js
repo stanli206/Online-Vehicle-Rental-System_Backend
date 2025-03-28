@@ -18,8 +18,6 @@ app.listen(port, () => {
   console.log(`server is running on port ${port}`);
 });
 
-// app.use("/api/users", userRoutes);
-
 // app.use(cors());
 // app.use(
 //   cors({
