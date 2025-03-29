@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createVehicle,
+  deleteVehicle,
   getVehicles,
   updateVehicle,
 } from "../Controllers/vehicleController.js";
@@ -15,7 +16,7 @@ router.post(
   "/create",
   authMiddleware,
   adminMiddleware,
-  uploadVehicle.single("image"),
+  uploadVehicle.single("images"),
   createVehicle
 );
 
@@ -27,8 +28,11 @@ router.put(
   "/update/:id",
   authMiddleware,
   adminMiddleware,
-  uploadVehicle.single("image"), 
+  uploadVehicle.single("images"), 
   updateVehicle
 );
+
+//delete
+router.delete("/delete/:id",authMiddleware,adminMiddleware,deleteVehicle)
 
 export default router;
