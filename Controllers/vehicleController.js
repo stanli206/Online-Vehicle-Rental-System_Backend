@@ -4,7 +4,17 @@ import Vehicle from "../Models/Vehicle.schema.js";
 //create vehicle | Admin only
 export const createVehicle = async (req, res) => {
   try {
-    const { make, model, year, pricePerDay, location, description } = req.body;
+    const {
+      make,
+      model,
+      year,
+      pricePerDay,
+      location,
+      description,
+      seats,
+      fuelType,
+      transmission,
+    } = req.body;
 
     let vehicleImage = ""; // Default empty string for single image
 
@@ -25,6 +35,9 @@ export const createVehicle = async (req, res) => {
       availability: true,
       images: vehicleImage, //
       description,
+      seats,
+      fuelType,
+      transmission,
     });
 
     await vehicle.save();
@@ -33,7 +46,6 @@ export const createVehicle = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 //getAllVehicle
 export const getVehicles = async (req, res) => {
@@ -56,9 +68,8 @@ export const updateVehicle = async (req, res) => {
       return res.status(404).json({ message: "Vehicle not found" });
     }
 
-    let updatedImage = existingVehicle.images || ""; // Ensure it exists
+    let updatedImage = existingVehicle.images || "";
 
-    // Check if new image is uploaded
     if (req.file) {
       const uploadedImage = await cloudinary.uploader.upload(req.file.path, {
         folder: "vehicle_images",
@@ -66,7 +77,7 @@ export const updateVehicle = async (req, res) => {
       updatedImage = uploadedImage.secure_url;
     }
 
-    // ✅ Create updated data object
+    //  Create updated data object
     const updatedData = {
       make: req.body.make,
       model: req.body.model,
@@ -77,6 +88,9 @@ export const updateVehicle = async (req, res) => {
       images: updatedImage, // Cloudinary image
       description: req.body.description,
       ratings: req.body.ratings,
+      seats: req.body.seats,
+      fuelType: req.body.fuelType,
+      transmission: req.body.transmission,
     };
 
     // ✅ Updating the vehicle details
@@ -119,4 +133,3 @@ export const deleteVehicle = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-

@@ -12,6 +12,10 @@ const vehicleSchema = new mongoose.Schema(
     images: { type: String, default: "" },
     description: { type: String },
     ratings: { type: Number, default: 0 },
+    seats: { type: Number, required: true }, 
+    fuelType: { type: String, enum: ["Petrol", "Diesel", "Electric"], required: true }, 
+    transmission: { type: String, enum: ["Manual", "Automatic"], required: true }, 
+  
   },
   { timestamps: true }
 );

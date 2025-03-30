@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import connectDB from "./Database/Config.js";
 import authRoutes from "./Routers/authRoutes.js";
 import vehicleRoutes from "./Routers/vehicleRoutes.js";
+import bookingRoutes from "./Routers/bookingRoutes.js";
+import paymentRoutes from "./Routers/paymentRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -13,6 +15,8 @@ connectDB();
 
 app.use("/api/auth", authRoutes);
 app.use("/api/vehicle", vehicleRoutes);
+app.use("/api/booking", bookingRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.listen(port, () => {
   console.log(`server is running on port ${port}`);
