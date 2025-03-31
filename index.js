@@ -6,11 +6,27 @@ import vehicleRoutes from "./Routers/vehicleRoutes.js";
 import bookingRoutes from "./Routers/bookingRoutes.js";
 import paymentRoutes from "./Routers/paymentRoutes.js";
 import reviewRoutes from "./Routers/reviewRoutes.js";
+import cors from "cors";
 
 dotenv.config();
 const app = express();
+// app.use(cors());
+// app.use(
+//   cors({
+//     origin: "http://localhost:5173",
+//     methods: "GET,POST,PUT,DELETE",
+//     credentials: true,
+//   })
+// );
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    methods: "GET,POST,PUT,DELETE",
+    credentials: true,
+  })
+);
 
-const port = process.env.PORT || 5003;
+const port = process.env.PORT ;
 app.use(express.json());
 connectDB();
 
@@ -23,12 +39,3 @@ app.use("/api/review", reviewRoutes);
 app.listen(port, () => {
   console.log(`server is running on port ${port}`);
 });
-
-// app.use(cors());
-// app.use(
-//   cors({
-//     origin: "https://resetpasswordtask.netlify.app", //
-//     methods: "GET,POST,PUT,DELETE",
-//     credentials: true,
-//   })
-// );
