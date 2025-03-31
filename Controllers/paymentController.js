@@ -83,15 +83,18 @@ export const createPayment = async (req, res) => {
       });
 
       console.log("🔗 Stripe Checkout Session Created:", session.url);
+      // Generate Transaction ID (Fake for now, replace with Stripe/Razorpay ID)
+      const transactionId = crypto.randomBytes(16).toString("hex");
 
-      // ✅ Store Payment in DB as "Pending"
+      // Store Payment in DB as "Pending"
       const payment = new Payment({
         user: req.user._id,
         booking: bookingId,
         amount: booking.totalPrice,
         paymentMethod,
+        transactionId,
         status: "pending",
-        transactionId: null, // 🛑 Ensure it's null initially
+        transactionId: null, // Ensure it's null initially
       });
 
       await payment.save();
@@ -105,53 +108,54 @@ export const createPayment = async (req, res) => {
   }
 };
 
-
 export const confirmPayment = async (req, res) => {
-    try {
-      const { session_id } = req.body;
-      
-      console.log("🔍 Received session_id:", session_id);
-      if (!session_id) {
-        console.log("❌ session_id not received in request!");
-        return res.status(400).json({ message: "Missing session_id" });
-      }
-  
-      const session = await stripe.checkout.sessions.retrieve(session_id);
-      console.log("💳 Stripe Session Retrieved:", session);
-  
-      if (!session || session.payment_status !== "paid") {
-        console.log("❌ Payment Not Completed:", session.payment_status);
-        return res.status(400).json({ message: "Payment failed or not completed" });
-      }
-  
-      // 🔍 Check Payment in DB
-      const payment = await Payment.findOne({ transactionId: session_id });
-      console.log("💰 Payment Retrieved from DB:", payment);
-  
-      if (!payment) {
-        console.log("❌ Payment not found in DB");
-        return res.status(404).json({ message: "Payment not found" });
-      }
-  
-      // ✅ Update Payment & Booking Status
-      payment.status = "completed";
-      payment.transactionId = session_id;
-      await payment.save();
-      console.log("✅ Payment Status Updated in DB");
-  
-      const updatedBooking = await Booking.findByIdAndUpdate(
-        payment.booking,
-        { status: "confirmed" },
-        { new: true }
-      );
-  
-      console.log("🚗 Booking Status Updated in DB:", updatedBooking);
-  
-      return res.status(200).json({ message: "Payment successful & booking confirmed" });
-  
-    } catch (error) {
-      console.error("❌ Server Error:", error.message);
-      res.status(500).json({ message: "Server Error", error: error.message });
+  try {
+    const { session_id } = req.body;
+
+    console.log("🔍 Received session_id:", session_id);
+    if (!session_id) {
+      console.log("❌ session_id not received in request!");
+      return res.status(400).json({ message: "Missing session_id" });
     }
-  };
-  
+
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+    console.log("💳 Stripe Session Retrieved:", session);
+
+    if (!session || session.payment_status !== "paid") {
+      console.log("❌ Payment Not Completed:", session.payment_status);
+      return res
+        .status(400)
+        .json({ message: "Payment failed or not completed" });
+    }
+
+    // 🔍 Check Payment in DB
+    const payment = await Payment.findOne({ transactionId: session_id });
+    console.log("💰 Payment Retrieved from DB:", payment);
+
+    if (!payment) {
+      console.log("❌ Payment not found in DB");
+      return res.status(404).json({ message: "Payment not found" });
+    }
+
+    // Update Payment & Booking Status
+    payment.status = "completed";
+    payment.transactionId = session_id;
+    await payment.save();
+    console.log("Payment Status Updated in DB");
+
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      payment.booking,
+      { status: "confirmed" },
+      { new: true }
+    );
+
+    console.log(" Booking Status Updated in DB:", updatedBooking);
+
+    return res
+      .status(200)
+      .json({ message: "Payment successful & booking confirmed" });
+  } catch (error) {
+    console.error("❌ Server Error:", error.message);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};

@@ -5,6 +5,7 @@ import authRoutes from "./Routers/authRoutes.js";
 import vehicleRoutes from "./Routers/vehicleRoutes.js";
 import bookingRoutes from "./Routers/bookingRoutes.js";
 import paymentRoutes from "./Routers/paymentRoutes.js";
+import reviewRoutes from "./Routers/reviewRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -17,6 +18,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/vehicle", vehicleRoutes);
 app.use("/api/booking", bookingRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/review", reviewRoutes);
 
 app.listen(port, () => {
   console.log(`server is running on port ${port}`);
