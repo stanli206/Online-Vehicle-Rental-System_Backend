@@ -33,7 +33,12 @@ export const createVehicle = async (req, res) => {
       pricePerDay,
       location,
       availability: true,
-      images: vehicleImage, //
+      images:
+        req.file.path ||
+        req.file.secure_url ||
+        req.file.url ||
+        req.file.filename ||
+        vehicleImage,
       description,
       seats,
       fuelType,
