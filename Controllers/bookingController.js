@@ -2,192 +2,99 @@ import Booking from "../Models/Booking.schema.js";
 import Vehicle from "../Models/Vehicle.schema.js";
 import moment from "moment-timezone";
 
-// export const createBooking = async (req, res) => {
-//   try {
-//     const { vehicle, startDate, startTime, endDate, endTime } = req.body;
-//     console.log("vehicle Id :" + vehicle);
-//     console.log("start date :" + startDate);
-//     console.log("end date :" + endDate);
-//     console.log("start time :" + startTime);
-//     console.log("end time :" + endTime);
-
-//     //  Check if vehicle exists
-//     const vehicleId = await Vehicle.findById(vehicle);
-//     if (!vehicleId) {
-//       return res.status(404).json({ message: "Vehicle not found" });
-//     }
-//     console.log(vehicleId);
-
-//     // Validate startDate and endDate
-//     if (
-//       !startDate ||
-//       !endDate ||
-//       isNaN(new Date(startDate)) ||
-//       isNaN(new Date(endDate))
-//     ) {
-//       return res.status(400).json({ message: "Invalid startDate or endDate" });
-//     }
-
-//     if (new Date(endDate) <= new Date(startDate)) {
-//       return res
-//         .status(400)
-//         .json({ message: "End date must be after start date" });
-//     }
-
-//     //Check if vehicle is already booked for the selected dates
-//     const existingBooking = await Booking.findOne({
-//       vehicle: vehicle,
-//       $or: [
-//         {
-//           startDate: { $lte: new Date(endDate) },
-//           endDate: { $gte: new Date(startDate) },
-//         },
-//       ],
-//     });
-
-//     if (existingBooking) {
-//       return res.status(400).json({
-//         message: "Vehicle is already booked for the selected dates.",
-//         booked: true,
-//       });
-//     }
-
-//     // Convert startDate and endDate properly
-//     const formattedStartDate = moment(startDate, "YYYY/MM/DD").startOf("day");
-//     const formattedEndDate = moment(endDate, "YYYY/MM/DD").endOf("day");
-//     console.log("start date" + formattedStartDate);
-//     console.log("end date" + formattedEndDate);
-
-//     // totalDays Calculation
-//     const totalDays = formattedEndDate.diff(formattedStartDate, "days") + 1;
-
-//     //total Price Calculation
-//     const totalPrice = totalDays * vehicleId.pricePerDay;
-
-//     if (totalDays <= 0) {
-//       return res.status(400).json({ message: "Invalid booking duration." });
-//     }
-
-//     // Ensure totalPrice is valid
-//     if (isNaN(totalPrice) || totalPrice <= 0) {
-//       return res.status(400).json({ message: "Total price calculation error" });
-//     }
-
-//     // Create Booking
-//     const newBooking = new Booking({
-//       user: req.user._id,
-//       vehicle: vehicle,
-//       startDate,
-//       startTime,
-//       endDate,
-//       endTime,
-//       totalPrice,
-//     });
-
-//     await newBooking.save();
-//     res.status(201).json({
-//       message: "Booking created successfully. Complete the payment to confirm.",
-//       booked: false, //  Not already booked
-//       newBooking,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: "Server Error", error });
-//   }
-// };
-
 export const createBooking = async (req, res) => {
   try {
     const { vehicle, startDate, startTime, endDate, endTime } = req.body;
-    console.log(vehicle);
-    console.log(startDate);
-    console.log(endDate);
 
-    // Check if vehicle exists
-    const vehicleId = await Vehicle.findById(vehicle);
-    if (!vehicleId) {
+    // 1. Validate Vehicle Exists
+    const vehicleData = await Vehicle.findById(vehicle);
+    if (!vehicleData) {
       return res.status(404).json({ message: "Vehicle not found" });
     }
 
-    // Convert startDate and endDate to proper timezone (IST in this case)
-    const formattedStartDate = moment(startDate)
-      .tz("Asia/Kolkata", true)
-      .startOf("day");
-    const formattedEndDate = moment(endDate)
-      .tz("Asia/Kolkata", true)
-      .endOf("day");
+    // 2. Parse Dates with Timezone (Asia/Kolkata)
+    const timeZone = "Asia/Kolkata";
+    const startDateTime = moment.tz(
+      `${startDate} ${startTime}`,
+      "YYYY-MM-DD HH:mm",
+      timeZone
+    );
+    const endDateTime = moment.tz(
+      `${endDate} ${endTime}`,
+      "YYYY-MM-DD HH:mm",
+      timeZone
+    );
 
-    // Convert startTime and endTime to correct timezone (IST)
-    const formattedStartTime = moment(startTime).tz("Asia/Kolkata", true);
-    const formattedEndTime = moment(endTime).tz("Asia/Kolkata", true);
-
-    console.log("Start Date:", formattedStartDate);
-    console.log("End Date:", formattedEndDate);
-    console.log("Start Time:", formattedStartTime);
-    console.log("End Time:", formattedEndTime);
-
-    // Validate startDate and endDate
-    if (
-      !startDate ||
-      !endDate ||
-      isNaN(new Date(startDate)) ||
-      isNaN(new Date(endDate))
-    ) {
-      return res.status(400).json({ message: "Invalid startDate or endDate" });
+    // 3. Validate Date/Time Inputs
+    if (!startDateTime.isValid() || !endDateTime.isValid()) {
+      return res.status(400).json({ message: "Invalid date/time format" });
     }
 
-    if (formattedEndDate <= formattedStartDate) {
-      return res
-        .status(400)
-        .json({ message: "End date must be after start date" });
+    if (endDateTime.isSameOrBefore(startDateTime)) {
+      return res.status(400).json({
+        message: "End date/time must be after start date/time",
+      });
     }
 
-    // Check if the vehicle is already booked for the selected dates
-    const existingBooking = await Booking.findOne({
+    // 4. Check for Overlapping Bookings (CORRECTED VERSION)
+    const overlappingBooking = await Booking.findOne({
       vehicle: vehicle,
-      $or: [
-        {
-          startDate: { $lte: formattedEndDate },
-          endDate: { $gte: formattedStartDate },
-        },
+      $nor: [
+        { endDateTime: { $lte: startDateTime.toDate() } }, // Existing booking ends before new one starts
+        { startDateTime: { $gte: endDateTime.toDate() } }, // Existing booking starts after new one ends
       ],
     });
 
-    if (existingBooking) {
-      return res
-        .status(400)
-        .json({ message: "Vehicle is already booked for the selected dates." });
+    if (overlappingBooking) {
+      return res.status(400).json({
+        message: "Vehicle already booked for this time period",
+        conflict: {
+          existingStart: overlappingBooking.startDateTime,
+          existingEnd: overlappingBooking.endDateTime,
+        },
+      });
     }
 
-    // Calculate totalDays and totalPrice
-    const totalDays = formattedEndDate.diff(formattedStartDate, "days") + 1;
-    const totalPrice = totalDays * vehicleId.pricePerDay;
+    // 5. Calculate Pricing
+    const durationHours = endDateTime.diff(startDateTime, "hours", true);
+    const totalDays = Math.ceil(durationHours / 24);
+    const totalPrice = totalDays * vehicleData.pricePerDay;
 
-    if (totalDays <= 0) {
-      return res.status(400).json({ message: "Invalid booking duration." });
-    }
-
-    if (isNaN(totalPrice) || totalPrice <= 0) {
-      return res.status(400).json({ message: "Total price calculation error" });
-    }
-
-    // Create the booking
+    // 6. Create New Booking
     const newBooking = new Booking({
       user: req.user._id,
       vehicle: vehicle,
-      startDate: formattedStartDate,
-      startTime: formattedStartTime,
-      endDate: formattedEndDate,
-      endTime: formattedEndTime,
+      startDateTime: startDateTime.toDate(), // Store as Date in UTC
+      endDateTime: endDateTime.toDate(), // Store as Date in UTC
+      startDate: startDateTime.format("YYYY-MM-DD"), // For easy querying
+      endDate: endDateTime.format("YYYY-MM-DD"),
+      startTime: startDateTime.format("HH:mm"),
+      endTime: endDateTime.format("HH:mm"),
       totalPrice,
+      status: "pending",
     });
 
     await newBooking.save();
+
+    // 7. Return Success Response
     res.status(201).json({
-      message: "Booking created successfully. Complete the payment to confirm.",
-      newBooking,
+      message: "Booking created successfully",
+      booking: {
+        id: newBooking._id,
+        vehicle: vehicleData.name,
+        start: startDateTime.format("DD MMM YYYY, hh:mm A"),
+        end: endDateTime.format("DD MMM YYYY, hh:mm A"),
+        totalDays,
+        totalPrice,
+        status: "pending",
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: "Server Error", error });
+    console.error("Booking error:", error);
+    res.status(500).json({
+      message: "Server error while creating booking",
+      error: error.message,
+    });
   }
 };
 

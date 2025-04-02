@@ -14,6 +14,7 @@ export const authMiddleware = async (req, res, next) => {
     req.user = await User.findById(decoded._id).select("-password");
     next();
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Please login & try again!" });
+    console.log({ message: error.message });
   }
 };

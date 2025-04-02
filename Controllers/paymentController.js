@@ -10,6 +10,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export const createPayment = async (req, res) => {
   try {
     const { bookingId, paymentMethod, session_id } = req.body;
+    console.log("bookingid"+bookingId);
+    console.log(paymentMethod);
+    console.log(session_id);
+    
 
     if (session_id) {
       // 🔍 Log session ID
