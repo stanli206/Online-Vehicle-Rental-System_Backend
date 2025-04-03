@@ -37,23 +37,46 @@ export const createBooking = async (req, res) => {
     }
 
     // 4. Check for Overlapping Bookings (CORRECTED VERSION)
+    // 4. Check for Overlapping Bookings (Modified for Same-Date Validation)
     const overlappingBooking = await Booking.findOne({
       vehicle: vehicle,
-      $nor: [
-        { endDateTime: { $lte: startDateTime.toDate() } }, // Existing booking ends before new one starts
-        { startDateTime: { $gte: endDateTime.toDate() } }, // Existing booking starts after new one ends
+      $or: [
+        {
+          startDate: { $eq: startDateTime.format("YYYY-MM-DD") }, // Same start date
+        },
+        {
+          endDate: { $eq: endDateTime.format("YYYY-MM-DD") }, // Same end date
+        },
       ],
     });
 
     if (overlappingBooking) {
       return res.status(400).json({
-        message: "Vehicle already booked for this time period",
+        message: "This vehicle is already booked for the selected date.",
         conflict: {
           existingStart: overlappingBooking.startDateTime,
           existingEnd: overlappingBooking.endDateTime,
         },
       });
     }
+
+    // const overlappingBooking = await Booking.findOne({
+    //   vehicle: vehicle,
+    //   $nor: [
+    //     { endDateTime: { $lte: startDateTime.toDate() } }, // Existing booking ends before new one starts
+    //     { startDateTime: { $gte: endDateTime.toDate() } }, // Existing booking starts after new one ends
+    //   ],
+    // });
+
+    // if (overlappingBooking) {
+    //   return res.status(400).json({
+    //     message: "Vehicle already booked for this time period",
+    //     conflict: {
+    //       existingStart: overlappingBooking.startDateTime,
+    //       existingEnd: overlappingBooking.endDateTime,
+    //     },
+    //   });
+    // }
 
     // 5. Calculate Pricing
     const durationHours = endDateTime.diff(startDateTime, "hours", true);
@@ -135,5 +158,52 @@ export const updateBookingStatus = async (req, res) => {
       .json({ message: `Booking ${status} successfully`, updatedBooking });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+//get booked dates
+export const getBookedDates = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+    console.log("Vehicle ID :", vehicleId);
+
+    if (!vehicleId) {
+      return res.status(400).json({ message: "Vehicle ID is required" });
+    }
+
+    // const bookings = await Booking.find({ vehicle: vehicleId, status: "confirmed || pending"  });
+    const bookings = await Booking.find({
+      vehicle: vehicleId,
+      status: { $in: ["confirmed", "pending"] },
+    });
+    console.log("Bookings found:", bookings);
+
+    if (bookings.length === 0) {
+      return res.status(200).json({ bookedDates: [] });
+    }
+
+    const bookedDates = new Set(); // Use Set to store unique dates
+
+    bookings.forEach((booking) => {
+      let currentDate = new Date(booking.startDate); // Get start date
+      const endDate = new Date(booking.endDate); // Get end date
+
+      console.log(
+        `Processing booking from ${currentDate.toISOString()} to ${endDate.toISOString()}`
+      );
+
+      while (currentDate <= endDate) {
+        const formattedDate = currentDate.toISOString().split("T")[0]; // Extract YYYY-MM-DD
+        bookedDates.add(formattedDate);
+        currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+      }
+    });
+
+    console.log("Final booked dates:", Array.from(bookedDates)); // Debugging Output
+
+    res.status(200).json({ bookedDates: Array.from(bookedDates) });
+  } catch (error) {
+    console.error("Error fetching booked dates:", error);
+    res.status(500).json({ message: "Error fetching booked dates", error });
   }
 };

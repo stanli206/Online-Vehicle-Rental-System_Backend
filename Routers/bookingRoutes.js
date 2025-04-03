@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createBooking,
+  getBookedDates,
   getBookings,
   updateBookingStatus,
 } from "../Controllers/bookingController.js";
@@ -16,6 +17,7 @@ router.put(
   authMiddleware,
   updateBookingStatus
 );
+router.get("/booked-dates/:vehicleId", getBookedDates);
 
 // getBookings
 

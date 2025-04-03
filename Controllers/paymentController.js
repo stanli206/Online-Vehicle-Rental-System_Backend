@@ -4,162 +4,80 @@ import Payment from "../Models/Payment.schema.js";
 import Booking from "../Models/Booking.schema.js";
 
 dotenv.config();
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const createPayment = async (req, res) => {
   try {
-    const { bookingId, paymentMethod, session_id } = req.body;
-    console.log("bookingid"+bookingId);
-    console.log(paymentMethod);
-    console.log(session_id);
+    const { bookingId, paymentMethod } = req.body;
+
+    console.log(bookingId);
+console.log(paymentMethod);
+// console.log(booking);
+
+    // 1. Find the booking
+    const booking = await Booking.findById(bookingId).populate("vehicle");
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+
+    // 2. Create Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [{
+        price_data: {
+          currency: "usd",
+          product_data: { name: `${booking.vehicle.make} ${booking.vehicle.model}` },
+          unit_amount: Math.round(booking.totalPrice * 100),
+        },
+        quantity: 1,
+      }],
+      mode: "payment",
+      success_url: `http://localhost:5173/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}`,
+      cancel_url: "http://localhost:5173/payment-failed",
+    });
     
 
-    if (session_id) {
-      // 🔍 Log session ID
-      console.log("🔍 Received session_id for verification:", session_id);
+    // 3. Save payment as "pending"
+    await new Payment({
+      user: req.user._id,
+      booking: bookingId,
+      amount: booking.totalPrice,
+      paymentMethod,
+      status: "pending",
+      transactionId: session.id, // Store Stripe session ID
+    }).save();
 
-      const session = await stripe.checkout.sessions.retrieve(session_id);
-      console.log("💳 Stripe Session Retrieved:", session);
+    // 4. Return Stripe checkout URL
+    res.json({ url: session.url });
 
-      if (!session || session.payment_status !== "paid") {
-        console.log("❌ Payment Not Completed:", session.payment_status);
-        return res
-          .status(400)
-          .json({ message: "Payment failed or not completed" });
-      }
-
-      // 🔍 Check if payment exists in DB
-      const payment = await Payment.findOne({ transactionId: session_id });
-      console.log("💰 Payment Retrieved from DB:", payment);
-
-      if (!payment) {
-        console.log("❌ Payment not found in DB");
-        return res.status(404).json({ message: "Payment not found" });
-      }
-
-      // ✅ Update Payment Status
-      payment.status = "completed";
-      payment.transactionId = session_id;
-      await payment.save();
-      console.log("✅ Payment Status Updated in DB");
-
-      // ✅ Update Booking Status
-      const updatedBooking = await Booking.findByIdAndUpdate(
-        payment.booking,
-        { status: "confirmed" },
-        { new: true }
-      );
-
-      console.log("🚗 Booking Status Updated in DB:", updatedBooking);
-
-      return res
-        .status(200)
-        .json({ message: "Payment successful & booking confirmed" });
-    } else {
-      console.log("🛍 Creating new payment for booking:", bookingId);
-
-      const booking = await Booking.findById(bookingId).populate("vehicle");
-      if (!booking) {
-        console.log("❌ Booking not found");
-        return res.status(404).json({ message: "Booking not found" });
-      }
-
-      const amount = Math.round(booking.totalPrice * 100);
-
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: `Booking for ${booking.vehicle.make} ${booking.vehicle.model}`,
-              },
-              unit_amount: amount,
-            },
-            quantity: 1,
-          },
-        ],
-        mode: "payment",
-        success_url: `http://localhost:5173/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: "http://localhost:5173/payment-failed",
-      });
-
-      console.log("🔗 Stripe Checkout Session Created:", session.url);
-      // Generate Transaction ID (Fake for now, replace with Stripe/Razorpay ID)
-      const transactionId = crypto.randomBytes(16).toString("hex");
-
-      // Store Payment in DB as "Pending"
-      const payment = new Payment({
-        user: req.user._id,
-        booking: bookingId,
-        amount: booking.totalPrice,
-        paymentMethod,
-        transactionId,
-        status: "pending",
-        transactionId: null, // Ensure it's null initially
-      });
-
-      await payment.save();
-      console.log("💰 Payment Saved to DB with Pending Status");
-
-      return res.json({ url: session.url });
-    }
   } catch (error) {
-    console.error("❌ Server Error:", error.message);
-    res.status(500).json({ message: "Server Error", error: error.message });
+    console.error(error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 
-export const confirmPayment = async (req, res) => {
+export const updatePaymentStatus = async (req, res) => {
   try {
-    const { session_id } = req.body;
+    const { sessionId, bookingId, userId } = req.body;
 
-    console.log("🔍 Received session_id:", session_id);
-    if (!session_id) {
-      console.log("❌ session_id not received in request!");
-      return res.status(400).json({ message: "Missing session_id" });
-    }
+    // 1. Check payment exists
+    const payment = await Payment.findOne({ transactionId: sessionId });
+    if (!payment) return res.status(404).json({ message: "Payment not found" });
 
-    const session = await stripe.checkout.sessions.retrieve(session_id);
-    console.log("💳 Stripe Session Retrieved:", session);
-
-    if (!session || session.payment_status !== "paid") {
-      console.log("❌ Payment Not Completed:", session.payment_status);
-      return res
-        .status(400)
-        .json({ message: "Payment failed or not completed" });
-    }
-
-    // 🔍 Check Payment in DB
-    const payment = await Payment.findOne({ transactionId: session_id });
-    console.log("💰 Payment Retrieved from DB:", payment);
-
-    if (!payment) {
-      console.log("❌ Payment not found in DB");
-      return res.status(404).json({ message: "Payment not found" });
-    }
-
-    // Update Payment & Booking Status
+    // 2. Update payment status to 'completed'
     payment.status = "completed";
-    payment.transactionId = session_id;
     await payment.save();
-    console.log("Payment Status Updated in DB");
 
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      payment.booking,
-      { status: "confirmed" },
-      { new: true }
-    );
+    // 3. Update booking status to 'confirmed'
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
 
-    console.log(" Booking Status Updated in DB:", updatedBooking);
+    booking.status = "confirmed";
+    await booking.save();
 
-    return res
-      .status(200)
-      .json({ message: "Payment successful & booking confirmed" });
+    res.json({ message: "Payment and booking updated successfully!" });
+
   } catch (error) {
-    console.error("❌ Server Error:", error.message);
-    res.status(500).json({ message: "Server Error", error: error.message });
+    console.error(error.message);
+    res.status(500).json({ message: "Server error" });
   }
 };
