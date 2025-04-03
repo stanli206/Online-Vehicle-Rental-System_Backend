@@ -31,14 +31,15 @@ export const addReview = async (req, res) => {
 };
 
 //Get all reviews for a vehicle
-export const getReviews = async (req, res) => {
+export const getReviewsByID = async (req, res) => {
   try {
     const { vehicleId } = req.params;
+    console.log(vehicleId);
     const reviews = await Review.find({ vehicle: vehicleId }).populate(
       "user",
       "name"
     );
-    res.json(reviews);
+    res.status(200).json(reviews);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

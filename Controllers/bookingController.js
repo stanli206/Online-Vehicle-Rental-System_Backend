@@ -174,7 +174,7 @@ export const getBookedDates = async (req, res) => {
     // const bookings = await Booking.find({ vehicle: vehicleId, status: "confirmed || pending"  });
     const bookings = await Booking.find({
       vehicle: vehicleId,
-      status: { $in: ["confirmed", "pending"] },
+      status: { $in: ["confirmed"] },
     });
     console.log("Bookings found:", bookings);
 
