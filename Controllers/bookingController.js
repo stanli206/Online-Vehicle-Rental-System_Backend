@@ -36,41 +36,55 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    // 4. Check for Overlapping Bookings (CORRECTED VERSION)
-    // 4. Check for Overlapping Bookings (Modified for Same-Date Validation)
+    // 4. Check for Overlapping Bookings with Status 
     const overlappingBooking = await Booking.findOne({
       vehicle: vehicle,
+      status: "confirmed", // Only check CONFIRMED bookings
       $or: [
+        // Case 1: New booking starts during existing booking
         {
-          startDate: { $eq: startDateTime.format("YYYY-MM-DD") }, // Same start date
+          startDate: { $lte: endDateTime.format("YYYY-MM-DD") },
+          endDate: { $gte: startDateTime.format("YYYY-MM-DD") },
         },
+        // Case 2: New booking ends during existing booking
         {
-          endDate: { $eq: endDateTime.format("YYYY-MM-DD") }, // Same end date
+          startDate: { $lte: endDateTime.format("YYYY-MM-DD") },
+          endDate: { $gte: startDateTime.format("YYYY-MM-DD") },
+        },
+        // Case 3: New booking completely contains existing booking
+        {
+          startDate: { $gte: startDateTime.format("YYYY-MM-DD") },
+          endDate: { $lte: endDateTime.format("YYYY-MM-DD") },
         },
       ],
     });
 
     if (overlappingBooking) {
       return res.status(400).json({
-        message: "This vehicle is already booked for the selected date.",
+        message: "This vehicle is already booked for the selected dates.",
         conflict: {
-          existingStart: overlappingBooking.startDateTime,
-          existingEnd: overlappingBooking.endDateTime,
+          existingStart: overlappingBooking.startDate,
+          existingEnd: overlappingBooking.endDate,
+          status: overlappingBooking.status,
         },
       });
     }
-
+    // 4. Check for Overlapping Bookings (Modified for Same-Date Validation)
     // const overlappingBooking = await Booking.findOne({
     //   vehicle: vehicle,
-    //   $nor: [
-    //     { endDateTime: { $lte: startDateTime.toDate() } }, // Existing booking ends before new one starts
-    //     { startDateTime: { $gte: endDateTime.toDate() } }, // Existing booking starts after new one ends
+    //   $or: [
+    //     {
+    //       startDate: { $eq: startDateTime.format("YYYY-MM-DD") }, // Same start date
+    //     },
+    //     {
+    //       endDate: { $eq: endDateTime.format("YYYY-MM-DD") }, // Same end date
+    //     },
     //   ],
     // });
 
     // if (overlappingBooking) {
     //   return res.status(400).json({
-    //     message: "Vehicle already booked for this time period",
+    //     message: "This vehicle is already booked for the selected date.",
     //     conflict: {
     //       existingStart: overlappingBooking.startDateTime,
     //       existingEnd: overlappingBooking.endDateTime,

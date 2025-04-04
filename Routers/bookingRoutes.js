@@ -19,6 +19,5 @@ router.put(
 );
 router.get("/booked-dates/:vehicleId", getBookedDates);
 
-// getBookings
 
 export default router;

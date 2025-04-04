@@ -30,7 +30,7 @@ export const addReview = async (req, res) => {
   }
 };
 
-//Get all reviews for a vehicle
+//Get all reviews for a vehicle http://localhost:5000/api/review/getAllReview/67e848206a358337972e0321
 export const getReviewsByID = async (req, res) => {
   try {
     const { vehicleId } = req.params;
@@ -44,7 +44,17 @@ export const getReviewsByID = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+//
+export const getAllReviews = async (req, res) => {
+  try {
+    const getAllReview = await Review.find();
+    console.log(getAllReview);
 
+    res.status(200).json({ data: getAllReview });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error });
+  }
+};
 //  Delete a review (only owner can delete)
 export const deleteReview = async (req, res) => {
   try {
@@ -54,14 +64,41 @@ export const deleteReview = async (req, res) => {
     if (!review) return res.status(404).json({ message: "Review not found" });
 
     // Check if user is the owner of the review
-    if (review.user.toString() !== req.user.id)
-      return res
-        .status(403)
-        .json({ message: "Not authorized to delete this review" });
+    // if (review.user.toString() !== req.user.id)
+    //   return res
+    //     .status(403)
+    //     .json({ message: "Not authorized to delete this review" });
 
     await review.deleteOne();
     res.json({ message: "Review deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// calculate average rating ecah vehicle
+export const getAverageRating = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+
+    // Find all reviews for the given vehicle ID
+    const reviews = await Review.find({ vehicle: vehicleId });
+
+    if (reviews.length === 0) {
+      return res.status(200).json({ averageRating: 0, totalReviews: 0 });
+    }
+
+    // Calculate the total rating sum
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+
+    // Calculate the average rating
+    const averageRating = totalRating / reviews.length;
+
+    res.status(200).json({
+      averageRating: averageRating.toFixed(1), // Rounded to 1 decimal place
+      totalReviews: reviews.length, // Total number of reviews
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error });
   }
 };
