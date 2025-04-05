@@ -2,7 +2,7 @@ import User from "../Models/User.schema.js";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
-import cloudinary from "../cloudinary/cloudinary.config.js";
+import cloudinary from "../Config/cloudinary.config.js";
 
 dotenv.config();
 export const registerUser = async (req, res) => {

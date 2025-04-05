@@ -1,18 +1,19 @@
 import Booking from "../Models/Booking.schema.js";
 import Vehicle from "../Models/Vehicle.schema.js";
 import moment from "moment-timezone";
+import Payment from "../Models/Payment.schema.js";
 
 export const createBooking = async (req, res) => {
   try {
     const { vehicle, startDate, startTime, endDate, endTime } = req.body;
 
-    // 1. Validate Vehicle Exists
+    //Validate Vehicle Exists
     const vehicleData = await Vehicle.findById(vehicle);
     if (!vehicleData) {
       return res.status(404).json({ message: "Vehicle not found" });
     }
 
-    // 2. Parse Dates with Timezone (Asia/Kolkata)
+    // Parse Dates with Timezone (Asia/Kolkata)
     const timeZone = "Asia/Kolkata";
     const startDateTime = moment.tz(
       `${startDate} ${startTime}`,
@@ -25,7 +26,7 @@ export const createBooking = async (req, res) => {
       timeZone
     );
 
-    // 3. Validate Date/Time Inputs
+    // Validate Date/Time Inputs
     if (!startDateTime.isValid() || !endDateTime.isValid()) {
       return res.status(400).json({ message: "Invalid date/time format" });
     }
@@ -36,22 +37,22 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    // 4. Check for Overlapping Bookings with Status 
+    //  Check for Overlapping Bookings with Status
     const overlappingBooking = await Booking.findOne({
       vehicle: vehicle,
       status: "confirmed", // Only check CONFIRMED bookings
       $or: [
-        // Case 1: New booking starts during existing booking
+        //  New booking starts during existing booking
         {
           startDate: { $lte: endDateTime.format("YYYY-MM-DD") },
           endDate: { $gte: startDateTime.format("YYYY-MM-DD") },
         },
-        // Case 2: New booking ends during existing booking
+        //  New booking ends during existing booking
         {
           startDate: { $lte: endDateTime.format("YYYY-MM-DD") },
           endDate: { $gte: startDateTime.format("YYYY-MM-DD") },
         },
-        // Case 3: New booking completely contains existing booking
+        //  New booking completely contains existing booking
         {
           startDate: { $gte: startDateTime.format("YYYY-MM-DD") },
           endDate: { $lte: endDateTime.format("YYYY-MM-DD") },
@@ -69,35 +70,12 @@ export const createBooking = async (req, res) => {
         },
       });
     }
-    // 4. Check for Overlapping Bookings (Modified for Same-Date Validation)
-    // const overlappingBooking = await Booking.findOne({
-    //   vehicle: vehicle,
-    //   $or: [
-    //     {
-    //       startDate: { $eq: startDateTime.format("YYYY-MM-DD") }, // Same start date
-    //     },
-    //     {
-    //       endDate: { $eq: endDateTime.format("YYYY-MM-DD") }, // Same end date
-    //     },
-    //   ],
-    // });
-
-    // if (overlappingBooking) {
-    //   return res.status(400).json({
-    //     message: "This vehicle is already booked for the selected date.",
-    //     conflict: {
-    //       existingStart: overlappingBooking.startDateTime,
-    //       existingEnd: overlappingBooking.endDateTime,
-    //     },
-    //   });
-    // }
-
-    // 5. Calculate Pricing
+    //  Calculate Pricing
     const durationHours = endDateTime.diff(startDateTime, "hours", true);
     const totalDays = Math.ceil(durationHours / 24);
     const totalPrice = totalDays * vehicleData.pricePerDay;
 
-    // 6. Create New Booking
+    //  Create New Booking
     const newBooking = new Booking({
       user: req.user._id,
       vehicle: vehicle,
@@ -145,6 +123,40 @@ export const getBookings = async (req, res) => {
   }
 };
 
+//get myBooking By user Id
+export const getUserBookingsWithPayments = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // Step 1: Get all bookings for the user (plain object with .lean())
+    const bookings = await Booking.find({ user: userId })
+      .populate("vehicle")
+      .populate("user")
+      .lean();
+
+    // Step 2: Get all payment records for those bookings
+    const bookingIds = bookings.map((booking) => booking._id);
+    const payments = await Payment.find({
+      booking: { $in: bookingIds },
+    }).lean();
+
+    // Step 3: Merge each booking with its payment
+    const bookingsWithPayments = bookings.map((booking) => {
+      const payment = payments.find(
+        (pay) => pay.booking.toString() === booking._id.toString()
+      );
+      return {
+        ...booking, // booking is already plain object
+        payment: payment || null,
+      };
+    });
+
+    res.status(200).json({ bookings: bookingsWithPayments });
+  } catch (error) {
+    console.error("Error fetching user bookings:", error);
+    res.status(500).json({ message: "Server Error", error });
+  }
+};
 //update booking
 export const updateBookingStatus = async (req, res) => {
   try {
@@ -152,10 +164,25 @@ export const updateBookingStatus = async (req, res) => {
     const { status } = req.body; // New status from request body
 
     // Valid status check
-    if (!["pending", "confirmed", "cancelled"].includes(status)) {
+    if (!["pending", "confirmed", "cancelled", "remove"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
     }
 
+    if (status === "remove") {
+      const deletedBooking = await Booking.findByIdAndDelete(id);
+      if (!deletedBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      return res.status(200).json({ message: "Booking removed successfully" });
+    }
+
+    if (status === "remove") {
+      const deletedBooking = await Payment.findByIdAndDelete(id);
+      if (!deletedBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      return res.status(200).json({ message: "Booking removed successfully" });
+    }
     // Booking find & update
     const updatedBooking = await Booking.findByIdAndUpdate(
       id,

@@ -1,4 +1,4 @@
-import cloudinary from "../cloudinary/cloudinary.config.js";
+import cloudinary from "../Config/cloudinary.config.js";
 import Vehicle from "../Models/Vehicle.schema.js";
 
 //create vehicle | Admin only

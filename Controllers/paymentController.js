@@ -2,6 +2,9 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import Payment from "../Models/Payment.schema.js";
 import Booking from "../Models/Booking.schema.js";
+import User from "../Models/User.schema.js";
+import sendEmail from "../utils/mailer.js";
+import moment from "moment-timezone"; // Updated import
 
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -56,8 +59,6 @@ export const createPayment = async (req, res) => {
   }
 };
 
-import User from "../Models/User.schema.js"; // Make sure to import User model
-
 export const updatePaymentStatus = async (req, res) => {
   try {
     const { sessionId, bookingId, userId } = req.body;
@@ -86,6 +87,51 @@ export const updatePaymentStatus = async (req, res) => {
     booking.status = "confirmed";
     await booking.save();
 
+    // 6. Prepare and send confirmation email
+    try {
+      const emailSubject = `Booking Confirmation #${booking._id
+        .toString()
+        .slice(-6)}`;
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #f5f5f5; padding: 20px; text-align: center;">
+            <h1 style="color: #333;">Booking Confirmed!</h1>
+          </div>
+          
+          <div style="padding: 20px;">
+            <p>Dear ${user.name},</p>
+            <p>Your booking has been confirmed. Here are your details:</p>
+            
+            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <h3 style="margin-top: 0;">${booking.vehicle.make} ${
+        booking.vehicle.model
+      }</h3>
+              <p><strong>Booking ID:</strong> ${booking._id}</p>
+              <p><strong>Pickup Date:</strong> ${moment(booking.startDate)
+                .tz("Asia/Kolkata")
+                .format("MMMM Do YYYY")} at ${booking.startTime}</p>
+              <p><strong>Return Date:</strong> ${moment(booking.endDate)
+                .tz("Asia/Kolkata")
+                .format("MMMM Do YYYY")} at ${booking.endTime}</p>
+              <p><strong>Total Price:</strong> $${booking.totalPrice}</p>
+            </div>
+            
+            <p>If you have any questions, please contact our support team.</p>
+            <p>Thank you for choosing us!</p>
+          </div>
+          
+          <div style="background-color: #333; color: white; padding: 10px; text-align: center;">
+            <p>© ${new Date().getFullYear()} RentAuto</p>
+          </div>
+        </div>
+      `;
+
+      await sendEmail(user.email, emailSubject, emailHtml);
+      console.log(`Confirmation email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error("Failed to send confirmation email:", emailError.message);
+    }
     // Now you have access to:
     // - booking details (including vehicle info)
     // - user details
