@@ -46,8 +46,8 @@ export const createPayment = async (req, res) => {
         },
       ],
       mode: "payment",
-      success_url: `https://rentgaadi-backend.onrender.com/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}&paymentId=${savedPayment._id}`,
-      cancel_url: "https://rentgaadi-backend.onrender.com/payment-failed", // ✅ Fixed quote
+      success_url: `https://onlinerentauto.netlify.app/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}&paymentId=${savedPayment._id}`,
+      cancel_url: "https://onlinerentauto.netlify.app/payment-failed", //  Fixed quote
     });
 
     // 4. Update payment with Stripe session ID as transactionId
