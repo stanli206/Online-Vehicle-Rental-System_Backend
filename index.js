@@ -6,6 +6,7 @@ import vehicleRoutes from "./Routers/vehicleRoutes.js";
 import bookingRoutes from "./Routers/bookingRoutes.js";
 import paymentRoutes from "./Routers/paymentRoutes.js";
 import reviewRoutes from "./Routers/reviewRoutes.js";
+import userProfileRoutes from "./Routers/userProfileRoutes.js";
 import cors from "cors";
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.use("/api/vehicle", vehicleRoutes);
 app.use("/api/booking", bookingRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/review", reviewRoutes);
+app.use("/api/user", userProfileRoutes);
 
 app.listen(port, () => {
   console.log(`server is running on port ${port}`);

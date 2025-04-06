@@ -162,14 +162,21 @@ export const updateBookingStatus = async (req, res) => {
   try {
     const { id } = req.params; // Booking ID from URL params
     const { status } = req.body; // New status from request body
+    console.log(status);
 
     // Valid status check
-    if (!["pending", "confirmed", "cancelled", "remove"].includes(status)) {
+    if (
+      !["pending", "confirmed", "cancelled", "remove", "cancel"].includes(
+        status
+      )
+    ) {
       return res.status(400).json({ message: "Invalid status value" });
     }
 
-    if (status === "remove") {
+    if (status === "cancel") {
       const deletedBooking = await Booking.findByIdAndDelete(id);
+      console.log("id not fetched");
+
       if (!deletedBooking) {
         return res.status(404).json({ message: "Booking not found" });
       }
@@ -177,8 +184,11 @@ export const updateBookingStatus = async (req, res) => {
     }
 
     if (status === "remove") {
-      const deletedBooking = await Payment.findByIdAndDelete(id);
-      if (!deletedBooking) {
+      // const deletedBooking0 = await Payment.findByIdAndDelete(id);
+      const deletedBooking1 = await Booking.findByIdAndDelete(id);
+      console.log("id 2 not fetched" + id);
+
+      if (!deletedBooking1) {
         return res.status(404).json({ message: "Booking not found" });
       }
       return res.status(200).json({ message: "Booking removed successfully" });

@@ -35,45 +35,6 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// export const registerUser = async (req, res) => {
-//   try {
-//     // console.log("Request Body:", req.body); //
-//     // console.log("Request File:", req.file);
-//     const { name, email, password, phone, role } = req.body; //profilePicture
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     //profile_img upload to cloudinary
-//     let profilePicture = "";
-//     if (req.file) {
-//       const uploadedImage = await cloudinary.uploader.upload(req.file.path, {
-//         folder: "profile_pictures",
-//       });
-//       profilePicture = uploadedImage.secure_url; // Store Cloudinary URL
-//     }
-//     console.log(name);
-//     console.log(email);
-//     console.log(password);
-
-//     const newUser = new User({
-//       name,
-//       email,
-//       password: hashedPassword,
-//       phone,
-//       profilePicture:
-//         req.file.path ||
-//         req.file.secure_url ||
-//         req.file.url ||
-//         req.file.filename ||
-//         profilePicture,
-//       role: role || "User",
-//     });
-//     await newUser.save();
-//     res.status(200).json({ message: "User registered successfully" });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
