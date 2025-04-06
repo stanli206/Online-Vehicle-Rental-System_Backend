@@ -46,7 +46,7 @@ export const createPayment = async (req, res) => {
         },
       ],
       mode: "payment",
-      success_url: `https://onlinerentauto.netlify.app/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}&paymentId=${savedPayment._id}`,
+      success_url: `https://onlinerentauto.netlify.app/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}`,
       cancel_url: "https://onlinerentauto.netlify.app/payment-failed", //  Fixed quote
     });
 
