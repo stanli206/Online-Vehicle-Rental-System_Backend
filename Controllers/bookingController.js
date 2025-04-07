@@ -40,7 +40,7 @@ export const createBooking = async (req, res) => {
     //  Check for Overlapping Bookings with Status
     const overlappingBooking = await Booking.findOne({
       vehicle: vehicle,
-      status: "confirmed", // Only check CONFIRMED bookings
+      status: "confirmed", // Only check confirm bookings
       $or: [
         //  New booking starts during existing booking
         {
@@ -128,19 +128,19 @@ export const getUserBookingsWithPayments = async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    // Step 1: Get all bookings for the user (plain object with .lean())
+    //  Get all bookings for the user 
     const bookings = await Booking.find({ user: userId })
       .populate("vehicle")
       .populate("user")
       .lean();
 
-    // Step 2: Get all payment records for those bookings
+    //  Get all payment records for those bookings
     const bookingIds = bookings.map((booking) => booking._id);
     const payments = await Payment.find({
       booking: { $in: bookingIds },
     }).lean();
 
-    // Step 3: Merge each booking with its payment
+    //  Merge each booking with its payment
     const bookingsWithPayments = bookings.map((booking) => {
       const payment = payments.find(
         (pay) => pay.booking.toString() === booking._id.toString()
@@ -160,8 +160,8 @@ export const getUserBookingsWithPayments = async (req, res) => {
 //update booking
 export const updateBookingStatus = async (req, res) => {
   try {
-    const { id } = req.params; // Booking ID from URL params
-    const { status } = req.body; // New status from request body
+    const { id } = req.params;
+    const { status } = req.body; 
     console.log(status);
 
     // Valid status check
@@ -246,7 +246,7 @@ export const getBookedDates = async (req, res) => {
       while (currentDate <= endDate) {
         const formattedDate = currentDate.toISOString().split("T")[0]; // Extract YYYY-MM-DD
         bookedDates.add(formattedDate);
-        currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1); 
       }
     });
 

@@ -5,6 +5,7 @@ import {
   getAllReviews,
   getAverageRating,
   getReviewsByID,
+  getReviewsByUser,
 } from "../Controllers/reviewController.js";
 import { authMiddleware } from "../Middleware/authMiddleware.js";
 import { adminMiddleware } from "../Middleware/roleMiddleware.js";
@@ -20,7 +21,8 @@ router.delete(
   adminMiddleware,
   deleteReview
 );
-// In your backend routes (reviewRoutes.js)
+//  (reviewRoutes.js)
 router.get("/:vehicleId/average-rating", getAverageRating);
+router.get("/getReviewById/:userId", authMiddleware, getReviewsByUser);
 
 export default router;

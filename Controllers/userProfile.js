@@ -36,7 +36,7 @@ export const updateUserProfile = async (req, res) => {
       profilePicture: req.body.profilePicture,
     };
 
-    // Optional: Prevent email/password change here (unless separate endpoint)
+    // Optional: Prevent email/password change here 
     const updatedUser = await User.findByIdAndUpdate(userId, updatedFields, {
       new: true,
       runValidators: true,

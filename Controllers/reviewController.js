@@ -30,7 +30,7 @@ export const addReview = async (req, res) => {
   }
 };
 
-//Get all reviews for a vehicle http://localhost:5000/api/review/getAllReview/67e848206a358337972e0321
+//Get all reviews for a vehicle http://localhost:5000/api/review/getAllReview
 export const getReviewsByID = async (req, res) => {
   try {
     const { vehicleId } = req.params;
@@ -63,11 +63,7 @@ export const deleteReview = async (req, res) => {
 
     if (!review) return res.status(404).json({ message: "Review not found" });
 
-    // Check if user is the owner of the review
-    // if (review.user.toString() !== req.user.id)
-    //   return res
-    //     .status(403)
-    //     .json({ message: "Not authorized to delete this review" });
+    
 
     await review.deleteOne();
     res.json({ message: "Review deleted successfully" });
@@ -100,5 +96,21 @@ export const getAverageRating = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Server Error", error });
+  }
+};
+
+// getAll reviews
+
+export const getReviewsByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const reviews = await Review.find({ user: userId })
+      .populate("vehicle", "name brand model image") // Populate vehicle details
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch reviews", error });
   }
 };
