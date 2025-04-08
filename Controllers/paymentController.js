@@ -47,7 +47,7 @@ export const createPayment = async (req, res) => {
       ],
       mode: "payment",
       success_url: `https://onlinerentauto.netlify.app/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}`,
-      cancel_url: "https://onlinerentauto.netlify.app/payment-failed", 
+      cancel_url: "https://onlinerentauto.netlify.app/payment-failed",
     });
 
     // 4. Update payment with Stripe session ID as transactionId
@@ -178,7 +178,7 @@ export const updatePaymentStatus = async (req, res) => {
   }
 };
 
-//invoice
+//invoiceAll payment Admin only
 export const getInvoiceDetailsByBookingId = async (req, res) => {
   try {
     const { bookingId } = req.params;
@@ -226,6 +226,75 @@ export const getInvoiceDetailsByBookingId = async (req, res) => {
     };
 
     res.status(200).json(invoice);
+  } catch (err) {
+    console.error("Invoice fetch error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//get invoice by userid
+
+export const getInvoiceDetailsByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log("User ID is " + userId);
+
+    const payments = await Payment.find({ user: userId })
+      .populate({
+        path: "booking",
+        populate: { path: "vehicle" },
+      })
+      .populate("user");
+
+    if (!payments || payments.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No payments found for this user" });
+    }
+
+    const invoices = payments.map((payment) => {
+      const { booking, user } = payment;
+      const vehicle = booking.vehicle;
+
+      // Calculate total days
+      const totalDays =
+        moment(booking.endDate).diff(moment(booking.startDate), "days") + 1;
+
+      return {
+        invoiceId: payment._id,
+        user: {
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+        },
+        vehicle: {
+          vehicleId: vehicle._id,
+          brand: vehicle.make,
+          model: vehicle.model,
+          type: vehicle.type,
+          fuelType: vehicle.fuelType,
+          pricePerDay: vehicle.pricePerDay,
+          image: vehicle.image,
+        },
+        booking: {
+          startDate: booking.startDate,
+          startTime: booking.startTime,
+          endDate: booking.endDate,
+          endTime: booking.endTime,
+          totalDays: totalDays,
+          totalPrice: booking.totalPrice,
+        },
+        payment: {
+          amount: payment.amount,
+          method: payment.paymentMethod,
+          transactionId: payment.transactionId,
+          status: payment.status,
+          paidAt: payment.createdAt,
+        },
+      };
+    });
+
+    res.status(200).json(invoices);
   } catch (err) {
     console.error("Invoice fetch error:", err);
     res.status(500).json({ message: "Server error" });
