@@ -49,6 +49,7 @@ export const createVehicle = async (req, res) => {
     res.status(201).json({ message: "Vehicle created successfully", vehicle });
   } catch (error) {
     res.status(500).json({ error: error.message });
+    console.log({ error: error.message });
   }
 };
 
@@ -98,7 +99,7 @@ export const updateVehicle = async (req, res) => {
       transmission: req.body.transmission,
     };
 
-    // ✅ Updating the vehicle details
+    //Updating the vehicle details
     const updatedVehicle = await Vehicle.findByIdAndUpdate(
       vehicleId,
       updatedData,
@@ -124,13 +125,13 @@ export const deleteVehicle = async (req, res) => {
       return res.status(404).json({ message: "Vehicle not found" });
     }
 
-    // Delete image from Cloudinary (If exists)
+    // Delete image from Cloudinary If exists
     if (vehicle.images) {
       const imagePublicId = vehicle.images.split("/").pop().split(".")[0]; // Extract public_id from URL
       await cloudinary.uploader.destroy(`vehicle_images/${imagePublicId}`);
     }
 
-    // Delete vehicle from DB
+    // Delete vehicle from DB//
     await Vehicle.findByIdAndDelete(vehicleId);
 
     res.status(200).json({ message: "Vehicle deleted successfully" });

@@ -10,13 +10,12 @@ export const registerUser = async (req, res) => {
     const { name, email, password, phone, role } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Check if a file is uploaded, if not, assign an empty string
     let profilePicture = "";
     if (req.file) {
       const uploadedImage = await cloudinary.uploader.upload(req.file.path, {
         folder: "profile_pictures",
       });
-      profilePicture = uploadedImage.secure_url; // Cloudinary URL
+      profilePicture = uploadedImage.secure_url;
     }
 
     const newUser = new User({
@@ -31,21 +30,48 @@ export const registerUser = async (req, res) => {
     await newUser.save();
     res.status(200).json({ message: "User registered successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error.code === 11000) {
+      // Duplicate key error
+      const duplicateField = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        message: `The ${duplicateField} is already registered. Please use a different ${duplicateField}.`,
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map((err) => err.message);
+      return res.status(400).json({ message: errors.join(", ") });
+    }
+
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    console.log(user.name);
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    // Check for missing fields
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "User not found. Please register first." });
+    }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch)
-      return res.status(400).json({ message: "Invalid Password" });
+    if (!passwordMatch) {
+      return res
+        .status(401)
+        .json({ message: "Incorrect password. Please try again." });
+    }
 
     const token = jwt.sign(
       { _id: user._id, role: user.role, name: user.name },
@@ -54,13 +80,15 @@ export const loginUser = async (req, res) => {
     );
 
     res.status(200).json({
-      message: "User logged in successfully",
+      message: "Login successful",
       token,
       role: user.role,
       _id: user._id,
       name: user.name,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal server error. Please try again later." });
   }
 };
