@@ -56,7 +56,7 @@ online-vehicle-rental-system/
 │   ├── routes/            # API route handlers
 │   ├── middleware/        # JWT Auth, error handling
 │   ├── config/            # DB and Cloudinary setup
-│   └── server.js          # App entry point
+│   └── index.js          # App entry point
 │
 ├── frontend/
 │   ├── components/        # Reusable UI components
