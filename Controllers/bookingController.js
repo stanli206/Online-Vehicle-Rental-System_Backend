@@ -40,14 +40,14 @@ export const createBooking = async (req, res) => {
     //  Check for Overlapping Bookings with Status
     const overlappingBooking = await Booking.findOne({
       vehicle: vehicle,
-      status: "confirmed", // Only check confirm bookings
+      status: "confirmed", 
       $or: [
-        //  New booking starts during existing booking
+        
         {
           startDate: { $lte: endDateTime.format("YYYY-MM-DD") },
           endDate: { $gte: startDateTime.format("YYYY-MM-DD") },
         },
-        //  New booking ends during existing booking
+        
         {
           startDate: { $lte: endDateTime.format("YYYY-MM-DD") },
           endDate: { $gte: startDateTime.format("YYYY-MM-DD") },

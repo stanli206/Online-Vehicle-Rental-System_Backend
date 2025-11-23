@@ -5,7 +5,8 @@ import Booking from "../Models/Booking.schema.js";
 import User from "../Models/User.schema.js";
 import sendEmail from "../utils/mailer.js";
 import moment from "moment-timezone";
-import Vehicle from "../Models/Vehicle.schema.js";
+
+// import Vehicle from "../Models/Vehicle.schema.js";
 
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -46,8 +47,8 @@ export const createPayment = async (req, res) => {
         },
       ],
       mode: "payment",
-      success_url: `https://onlinerentauto.netlify.app/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}`,
-      cancel_url: "https://onlinerentauto.netlify.app/payment-failed",
+      success_url: `http://localhost:5173/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}`,
+      cancel_url: "http://localhost:5173/payment-failed",
     });
 
     // 4. Update payment with Stripe session ID as transactionId
@@ -77,7 +78,7 @@ export const updatePaymentStatus = async (req, res) => {
     // 3. Get booking with populated vehicle and user details
     const booking = await Booking.findById(bookingId)
       .populate("vehicle")
-      .populate("user", "name email phone"); // Add fields you need
+      .populate("user", "name email phone"); 
 
     if (!booking) return res.status(404).json({ message: "Booking not found" });
 
@@ -135,8 +136,7 @@ export const updatePaymentStatus = async (req, res) => {
     } catch (emailError) {
       console.error("Failed to send confirmation email:", emailError.message);
     }
-    // Now you have access to:
-    // - booking details (including vehicle info)
+    
     // - user details
     console.log("Booking Details:", {
       bookingId: booking._id,

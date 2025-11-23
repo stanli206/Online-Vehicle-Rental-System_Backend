@@ -36,7 +36,7 @@ export const updateUserProfile = async (req, res) => {
       profilePicture: req.body.profilePicture,
     };
 
-    // Optional: Prevent email/password change here 
+    // Optional: Prevent email/password change here
     const updatedUser = await User.findByIdAndUpdate(userId, updatedFields, {
       new: true,
       runValidators: true,
@@ -144,6 +144,7 @@ export const getPaymentsWithBookingHistoryByUserId = async (req, res) => {
       }
       return payment;
     });
+    // console.log("fvsvshvfhfh : " + modifiedPayments);
 
     res.status(200).json({
       success: true,

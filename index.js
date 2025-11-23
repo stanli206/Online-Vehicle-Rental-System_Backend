@@ -8,6 +8,8 @@ import paymentRoutes from "./Routers/paymentRoutes.js";
 import reviewRoutes from "./Routers/reviewRoutes.js";
 import userProfileRoutes from "./Routers/userProfileRoutes.js";
 import cors from "cors";
+// import geminiRoute from "./Routers/geminiRoute.js";
+// import "./Controllers/reminderCron.js";
 
 dotenv.config();
 const app = express();
@@ -19,7 +21,7 @@ app.use(
     credentials: true,
   })
 );
-
+//https://onlinerentauto.netlify.app, http://localhost:5173
 const port = process.env.PORT;
 app.use(express.json());
 connectDB();
@@ -30,6 +32,7 @@ app.use("/api/booking", bookingRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/api/user", userProfileRoutes);
+// app.use("/api/gemini", geminiRoute);
 
 app.listen(port, () => {
   console.log(`server is running on port ${port}`);
