@@ -47,11 +47,11 @@ export const createPayment = async (req, res) => {
         },
       ],
       mode: "payment",
-      success_url: `http://localhost:5173/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}`,
-      cancel_url: "http://localhost:5173/payment-failed",
+      success_url: `https://onlinerentauto.netlify.app/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}`,
+      cancel_url: "https://onlinerentauto.netlify.app/payment-failed",
     });
 
-    // 4. Update payment with Stripe session ID as transactionId
+    // 4. Update payment with Stripe session ID as transactionId, http://localhost:5173
     savedPayment.transactionId = session.id;
     await savedPayment.save();
 
@@ -78,7 +78,7 @@ export const updatePaymentStatus = async (req, res) => {
     // 3. Get booking with populated vehicle and user details
     const booking = await Booking.findById(bookingId)
       .populate("vehicle")
-      .populate("user", "name email phone"); 
+      .populate("user", "name email phone");
 
     if (!booking) return res.status(404).json({ message: "Booking not found" });
 
@@ -136,7 +136,7 @@ export const updatePaymentStatus = async (req, res) => {
     } catch (emailError) {
       console.error("Failed to send confirmation email:", emailError.message);
     }
-    
+
     // - user details
     console.log("Booking Details:", {
       bookingId: booking._id,
