@@ -83,6 +83,11 @@ web_modules/
 .cache
 .parcel-cache
 
+# Local scratch / test files (not part of the app)
+__resolve_test.mjs
+__rt.mjs
+.fuse_hidden*
+
 # Next.js build output
 .next
 out

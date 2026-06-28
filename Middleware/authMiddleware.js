@@ -5,7 +5,10 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const authMiddleware = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  // Prefer the httpOnly access cookie; fall back to a Bearer header for
+  // backward compatibility / non-browser API clients.
+  const token =
+    req.cookies?.accessToken || req.headers.authorization?.split(" ")[1];
 
   if (!token) return res.status(401).json({ message: "Token Missing!" });
 
@@ -14,7 +17,8 @@ export const authMiddleware = async (req, res, next) => {
     req.user = await User.findById(decoded._id).select("-password");
     next();
   } catch (error) {
-    res.status(500).json({ message: "Please login & try again!" });
+    // 401 (not 500) so the frontend can detect expiry and refresh the token.
+    res.status(401).json({ message: "Please login & try again!" });
     console.log({ message: error.message });
   }
 };

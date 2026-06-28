@@ -3,6 +3,13 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import cloudinary from "../Config/cloudinary.config.js";
+import {
+  setAuthCookies,
+  setAccessCookie,
+  clearAuthCookies,
+  verifyRefreshToken,
+  REFRESH_COOKIE,
+} from "../utils/token.js";
 
 dotenv.config();
 export const registerUser = async (req, res) => {
@@ -73,15 +80,11 @@ export const loginUser = async (req, res) => {
         .json({ message: "Incorrect password. Please try again." });
     }
 
-    const token = jwt.sign(
-      { _id: user._id, role: user.role, name: user.name },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    // Set httpOnly access + refresh cookies (token is NOT exposed to JS).
+    setAuthCookies(res, user);
 
     res.status(200).json({
       message: "Login successful",
-      token,
       role: user.role,
       _id: user._id,
       name: user.name,
@@ -91,4 +94,35 @@ export const loginUser = async (req, res) => {
       .status(500)
       .json({ message: "Internal server error. Please try again later." });
   }
+};
+
+// POST /api/auth/refresh
+// Uses the refresh cookie to issue a new short-lived access cookie.
+export const refreshToken = async (req, res) => {
+  try {
+    const token = req.cookies?.[REFRESH_COOKIE];
+    if (!token) {
+      return res.status(401).json({ message: "No refresh token" });
+    }
+
+    const decoded = verifyRefreshToken(token);
+    const user = await User.findById(decoded._id).select("-password");
+    if (!user) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "User no longer exists" });
+    }
+
+    setAccessCookie(res, user);
+    res.status(200).json({ message: "Token refreshed" });
+  } catch (error) {
+    clearAuthCookies(res);
+    res.status(401).json({ message: "Invalid or expired refresh token" });
+  }
+};
+
+// POST /api/auth/logout
+// Clears the auth cookies.
+export const logoutUser = async (req, res) => {
+  clearAuthCookies(res);
+  res.status(200).json({ message: "Logged out" });
 };

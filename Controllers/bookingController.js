@@ -2,96 +2,28 @@ import Booking from "../Models/Booking.schema.js";
 import Vehicle from "../Models/Vehicle.schema.js";
 import moment from "moment-timezone";
 import Payment from "../Models/Payment.schema.js";
+import * as bookingService from "../services/bookingService.js";
 
 export const createBooking = async (req, res) => {
   try {
     const { vehicle, startDate, startTime, endDate, endTime } = req.body;
 
-    //Validate Vehicle Exists
-    const vehicleData = await Vehicle.findById(vehicle);
-    if (!vehicleData) {
-      return res.status(404).json({ message: "Vehicle not found" });
-    }
-
-    // Parse Dates with Timezone (Asia/Kolkata)
-    const timeZone = "Asia/Kolkata";
-    const startDateTime = moment.tz(
-      `${startDate} ${startTime}`,
-      "YYYY-MM-DD HH:mm",
-      timeZone
-    );
-    const endDateTime = moment.tz(
-      `${endDate} ${endTime}`,
-      "YYYY-MM-DD HH:mm",
-      timeZone
-    );
-
-    // Validate Date/Time Inputs
-    if (!startDateTime.isValid() || !endDateTime.isValid()) {
-      return res.status(400).json({ message: "Invalid date/time format" });
-    }
-
-    if (endDateTime.isSameOrBefore(startDateTime)) {
-      return res.status(400).json({
-        message: "End date/time must be after start date/time",
-      });
-    }
-
-    //  Check for Overlapping Bookings with Status
-    const overlappingBooking = await Booking.findOne({
-      vehicle: vehicle,
-      status: "confirmed", 
-      $or: [
-        
-        {
-          startDate: { $lte: endDateTime.format("YYYY-MM-DD") },
-          endDate: { $gte: startDateTime.format("YYYY-MM-DD") },
-        },
-        
-        {
-          startDate: { $lte: endDateTime.format("YYYY-MM-DD") },
-          endDate: { $gte: startDateTime.format("YYYY-MM-DD") },
-        },
-        //  New booking completely contains existing booking
-        {
-          startDate: { $gte: startDateTime.format("YYYY-MM-DD") },
-          endDate: { $lte: endDateTime.format("YYYY-MM-DD") },
-        },
-      ],
-    });
-
-    if (overlappingBooking) {
-      return res.status(400).json({
-        message: "This vehicle is already booked for the selected dates.",
-        conflict: {
-          existingStart: overlappingBooking.startDate,
-          existingEnd: overlappingBooking.endDate,
-          status: overlappingBooking.status,
-        },
-      });
-    }
-    //  Calculate Pricing
-    const durationHours = endDateTime.diff(startDateTime, "hours", true);
-    const totalDays = Math.ceil(durationHours / 24);
-    const totalPrice = totalDays * vehicleData.pricePerDay;
-
-    //  Create New Booking
-    const newBooking = new Booking({
-      user: req.user._id,
-      vehicle: vehicle,
-      startDateTime: startDateTime.toDate(), // Store as Date in UTC
-      endDateTime: endDateTime.toDate(), // Store as Date in UTC
-      startDate: startDateTime.format("YYYY-MM-DD"), // For easy querying
-      endDate: endDateTime.format("YYYY-MM-DD"),
-      startTime: startDateTime.format("HH:mm"),
-      endTime: endDateTime.format("HH:mm"),
+    // Business logic lives in the service layer; controller handles HTTP only.
+    const {
+      newBooking,
+      vehicleData,
+      startDateTime,
+      endDateTime,
+      totalDays,
       totalPrice,
-      status: "pending",
+    } = await bookingService.createBooking(req.user._id, {
+      vehicle,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
     });
 
-    await newBooking.save();
-
-    // 7. Return Success Response
     res.status(201).json({
       message: "Booking created successfully",
       booking: {
@@ -105,6 +37,10 @@ export const createBooking = async (req, res) => {
       },
     });
   } catch (error) {
+    // Client-facing validation errors carry a status + payload from the service.
+    if (error.status) {
+      return res.status(error.status).json(error.payload);
+    }
     console.error("Booking error:", error);
     res.status(500).json({
       message: "Server error while creating booking",

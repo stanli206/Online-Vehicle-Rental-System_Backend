@@ -13,7 +13,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const createPayment = async (req, res) => {
   try {
-    const { bookingId, paymentMethod } = req.body;
+    const { bookingId, paymentMethod, origin } = req.body;
+
+    // Return the user to the SAME origin they came from (prevents cross-origin
+    // localStorage loss that made users appear logged out after payment).
+    const clientUrl = origin || process.env.CLIENT_URL || "http://localhost:5173";
 
     // 1. Get booking details
     const booking = await Booking.findById(bookingId).populate("vehicle");
@@ -47,8 +51,8 @@ export const createPayment = async (req, res) => {
         },
       ],
       mode: "payment",
-      success_url: `https://onlinerentauto.netlify.app/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}`,
-      cancel_url: "https://onlinerentauto.netlify.app/payment-failed",
+      success_url: `${clientUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}&userId=${req.user._id}`,
+      cancel_url: `${clientUrl}/payment-failed`,
     });
 
     // 4. Update payment with Stripe session ID as transactionId, http://localhost:5173
