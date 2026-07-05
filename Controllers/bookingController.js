@@ -1,6 +1,4 @@
 import Booking from "../Models/Booking.schema.js";
-import Vehicle from "../Models/Vehicle.schema.js";
-import moment from "moment-timezone";
 import Payment from "../Models/Payment.schema.js";
 import * as bookingService from "../services/bookingService.js";
 

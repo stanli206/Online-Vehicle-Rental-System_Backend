@@ -1,7 +1,6 @@
 import User from "../Models/User.schema.js";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import jwt from "jsonwebtoken";
 import cloudinary from "../Config/cloudinary.config.js";
 import {
   setAuthCookies,
@@ -89,7 +88,7 @@ export const loginUser = async (req, res) => {
       _id: user._id,
       name: user.name,
     });
-  } catch (error) {
+  } catch {
     res
       .status(500)
       .json({ message: "Internal server error. Please try again later." });
@@ -114,7 +113,7 @@ export const refreshToken = async (req, res) => {
 
     setAccessCookie(res, user);
     res.status(200).json({ message: "Token refreshed" });
-  } catch (error) {
+  } catch {
     clearAuthCookies(res);
     res.status(401).json({ message: "Invalid or expired refresh token" });
   }
