@@ -7,8 +7,12 @@ dotenv.config();
 // Like authMiddleware, but never blocks the request.
 // If a valid token is present, attaches req.user. Otherwise continues anonymously.
 export const optionalAuth = async (req, res, next) => {
-  const token =
-    req.cookies?.accessToken || req.headers.authorization?.split(" ")[1];
+  const headerToken = req.headers.authorization?.split(" ")[1];
+  const cleanHeaderToken =
+    headerToken && headerToken !== "undefined" && headerToken !== "null"
+      ? headerToken
+      : null;
+  const token = req.cookies?.accessToken || cleanHeaderToken;
 
   if (!token) return next();
 

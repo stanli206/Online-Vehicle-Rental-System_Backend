@@ -7,8 +7,13 @@ dotenv.config();
 export const authMiddleware = async (req, res, next) => {
   // Prefer the httpOnly access cookie; fall back to a Bearer header for
   // backward compatibility / non-browser API clients.
-  const token =
-    req.cookies?.accessToken || req.headers.authorization?.split(" ")[1];
+  const headerToken = req.headers.authorization?.split(" ")[1];
+  // Ignore junk header values like "Bearer undefined"/"null" (legacy frontend).
+  const cleanHeaderToken =
+    headerToken && headerToken !== "undefined" && headerToken !== "null"
+      ? headerToken
+      : null;
+  const token = req.cookies?.accessToken || cleanHeaderToken;
 
   if (!token) return res.status(401).json({ message: "Token Missing!" });
 

@@ -14,13 +14,13 @@ const paymentSchema = new mongoose.Schema(
       enum: ["card", "upi", "wallet"],
       required: true,
     },
-    transactionId: { type: String, required: true },
     status: {
       type: String,
       enum: ["pending", "completed", "cancelled"],
       default: "pending",
     },
-    transactionId: { type: String },
+    // Set to "" on creation, filled with the Stripe session id later → not required.
+    transactionId: { type: String, default: "" },
   },
   { timestamps: true }
 );
