@@ -30,3 +30,12 @@ jobs:
         run: |
           docker push \
           ${{ secrets.DOCKER_USERNAME }}/rentgaadi-backend:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+              echo "Connected Successfully"
