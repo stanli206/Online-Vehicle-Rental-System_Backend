@@ -1,7 +1,9 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import pinoHttp from "pino-http";
 import dotenv from "dotenv";
+import logger from "./utils/logger.js";
 import authRoutes from "./Routers/authRoutes.js";
 import vehicleRoutes from "./Routers/vehicleRoutes.js";
 import bookingRoutes from "./Routers/bookingRoutes.js";
@@ -26,6 +28,9 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+// Structured request logging (adds req.log to every request).
+app.use(pinoHttp({ logger }));
+
 // Health check
 app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 
@@ -38,4 +43,14 @@ app.use("/api/review", reviewRoutes);
 app.use("/api/user", userProfileRoutes);
 app.use("/api/gemini", geminiRoute);
 
+// Centralized error handler — logs the error and returns a clean JSON response.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
+  (req.log || logger).error({ err }, "Unhandled request error");
+  res.status(err.status || 500).json({
+    message: err.message || "Internal server error",
+  });
+});
+
 export default app;
+
