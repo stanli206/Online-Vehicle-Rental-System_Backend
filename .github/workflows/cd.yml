@@ -38,4 +38,14 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-              echo "Connected Successfully"
+              docker pull ${{ secrets.DOCKER_USERNAME }}/rentgaadi-backend:latest
+
+              docker stop rentgaadi-backend || true
+              docker rm rentgaadi-backend || true
+
+              docker run -d \
+                --name rentgaadi-backend \
+                --restart unless-stopped \
+                -p 5000:5000 \
+                --env-file ~/.env \
+                ${{ secrets.DOCKER_USERNAME }}/rentgaadi-backend:latest
