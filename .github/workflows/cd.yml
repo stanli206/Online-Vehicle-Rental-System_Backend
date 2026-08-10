@@ -48,6 +48,7 @@ jobs:
             EMAIL=${{ secrets.EMAIL }}
             EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
             GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            CLIENT_URL=${{ secrets.CLIENT_URL }}
             EOF
 
             docker pull ${{ secrets.DOCKER_USERNAME }}/rentgaadi-backend:latest
