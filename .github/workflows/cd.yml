@@ -9,8 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-
-    steps: 
+    steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -38,14 +37,27 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-              docker pull ${{ secrets.DOCKER_USERNAME }}/rentgaadi-backend:latest
+            cat > /home/ubuntu/.env << EOF
+            PORT=${{ secrets.PORT }}
+            MONGODB_URL=${{ secrets.MONGODB_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+            EMAIL=${{ secrets.EMAIL }}
+            EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            EOF
 
-              docker stop rentgaadi-backend || true
-              docker rm rentgaadi-backend || true
+            docker pull ${{ secrets.DOCKER_USERNAME }}/rentgaadi-backend:latest
 
-              docker run -d \
-                --name rentgaadi-backend \
-                --restart unless-stopped \
-                -p 5000:5000 \
-                --env-file ~/.env \
-                ${{ secrets.DOCKER_USERNAME }}/rentgaadi-backend:latest
+            docker stop rentgaadi-backend || true
+            docker rm rentgaadi-backend || true
+
+            docker run -d \
+              --name rentgaadi-backend \
+              --restart unless-stopped \
+              -p 5000:5000 \
+              --env-file /home/ubuntu/.env \
+              ${{ secrets.DOCKER_USERNAME }}/rentgaadi-backend:latest
